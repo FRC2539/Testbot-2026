@@ -29,7 +29,7 @@ public class Auto {
     this.robotContainer = container;
     setUpPathPlanner(container.drivetrain);
     setUpNamedCommands();
-    autoChooser = new LoggedDashboardChooser<>("Chooser", AutoBuilder.buildAutoChooser());
+    autoChooser = new LoggedDashboardChooser<>("Auto Routine", AutoBuilder.buildAutoChooser());
   }
 
   public void setUpPathPlanner(CommandSwerveDrivetrain drivetrain) {
