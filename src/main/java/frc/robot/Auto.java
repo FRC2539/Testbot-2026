@@ -8,9 +8,9 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.constants.AlignConstants;
 import frc.robot.constants.GlobalConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
@@ -31,10 +31,6 @@ public class Auto {
     setUpPathPlanner(container.drivetrain);
     setUpNamedCommands();
     autoChooser = new LoggedDashboardChooser<>("Auto Routine", AutoBuilder.buildAutoChooser());
-    SmartDashboard.putData(
-    "Auto Routine",
-    AutoBuilder.buildAutoChooser());
-
   }
 
   public void setUpPathPlanner(CommandSwerveDrivetrain drivetrain) {
@@ -69,7 +65,12 @@ public class Auto {
   }
 
   public void setUpNamedCommands() {
-    // NamedCommands.registerCommand(
+
+    NamedCommands.registerCommand(
+      "No",
+      Commands.none()
+  );
+
   }
 
   public Command getAutoCommand() {

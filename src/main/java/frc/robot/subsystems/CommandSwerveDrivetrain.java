@@ -7,6 +7,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.apriltag.AprilTag;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.estimator.PoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -18,6 +19,7 @@ import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import frc.robot.constants.AlignConstants;
 import frc.robot.constants.TunerConstants.TunerSwerveDrivetrain;
 import java.util.List;
 import java.util.function.Supplier;
@@ -133,7 +135,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     if (Utils.isSimulation()) {
       startSimThread();
     }
-    ALL_APRIL_TAGS = List.of();
+    ALL_APRIL_TAGS = AlignConstants.fieldLayout.getTags();
   }
 
   /**
@@ -155,7 +157,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     if (Utils.isSimulation()) {
       startSimThread();
     }
-    ALL_APRIL_TAGS = List.of();
+    ALL_APRIL_TAGS = AlignConstants.fieldLayout.getTags();
   }
 
   /**
@@ -188,7 +190,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     if (Utils.isSimulation()) {
       startSimThread();
     }
-    ALL_APRIL_TAGS = List.of();
+    ALL_APRIL_TAGS = AlignConstants.fieldLayout.getTags();
   }
 
   /**
@@ -310,35 +312,35 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     return getState().Speeds;
   }
 
-  public void filterAndAddMeasurements(PoseEstimate estimate) {
+  // public void filterAndAddMeasurements(PoseEstimator estimate) {
 
-    // System.out.println(estimate);
-    if (estimate == null) {
+  //   // System.out.println(estimate);
+  //   if (estimate == null) {
 
-    } else {
-      boolean rejectPose = false;
-      if (estimate.tagCount < 1) {
-        rejectPose = true;
-      }
+  //   } else {
+  //     boolean rejectPose = false;
+  //     if (estimate.tagCount < 1) {
+  //       rejectPose = true;
+  //     }
 
-      if (estimate.avgTagDist
-          > 3.5) { // reject tags if estimate is the average tag distance is more than 2 meters awa
-        rejectPose = true;
-      }
+  //     if (estimate.avgTagDist
+  //         > 3.5) { // reject tags if estimate is the average tag distance is more than 2 meters awa
+  //       rejectPose = true;
+  //     }
 
-      if (!rejectPose) {
-        Logger.recordOutput("accepted limelight pose", estimate.pose);
-        addVisionMeasurement(
-            estimate.pose,
-            estimate.timestampSeconds,
-            // VecBuilder.fill(
-            //     0, 0, .99999)); // increase values to trust vision estimate less. (x, y, heading)
-            VecBuilder.fill(
-                0.5, 0.5,
-                .99999)); // increase values to trust vision estimate less. (x, y, heading)
-      }
-    }
-  }
+  //     if (!rejectPose) {
+  //       Logger.recordOutput("accepted limelight pose", estimate.pose);
+  //       addVisionMeasurement(
+  //           estimate.pose,
+  //           estimate.timestampSeconds,
+  //           // VecBuilder.fill(
+  //           //     0, 0, .99999)); // increase values to trust vision estimate less. (x, y, heading)
+  //           VecBuilder.fill(
+  //               0.5, 0.5,
+  //               .99999)); // increase values to trust vision estimate less. (x, y, heading)
+  //     }
+  //   }
+  // }
 
   public Pose2d findNearestAprilTagPose() {
     Pose2d currentPose = getRobotPose();
@@ -355,22 +357,5 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
       }
     }
     return nearestAprilTagPose;
-  }
-
-  /**
-   * Simple holder for vision pose estimates used by filterAndAddMeasurements.
-   */
-  public static class PoseEstimate {
-    public final Pose2d pose;
-    public final double timestampSeconds;
-    public final int tagCount;
-    public final double avgTagDist;
-
-    public PoseEstimate(Pose2d pose, double timestampSeconds, int tagCount, double avgTagDist) {
-      this.pose = pose;
-      this.timestampSeconds = timestampSeconds;
-      this.tagCount = tagCount;
-      this.avgTagDist = avgTagDist;
-    }
   }
 }
