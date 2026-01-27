@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
@@ -19,8 +20,13 @@ import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.constants.AlignConstants;
 import frc.robot.constants.TunerConstants.TunerSwerveDrivetrain;
+
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Volts;
+
 import java.util.List;
 import java.util.function.Supplier;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -54,46 +60,46 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
   // /* SysId routine for characterizing translation. This is used to find PID gains for the drive
   // motors. */
-  // private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
-  //     new SysIdRoutine.Config(
-  //         null,        // Use default ramp rate (1 V/s)
-  //         Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
-  //         null,        // Use default timeout (10 s)
-  //         // Log state with SignalLogger class
-  //         state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
-  //     ),
-  //     new SysIdRoutine.Mechanism(
-  //         output -> setControl(m_translationCharacterization.withVolts(output)),
-  //         null,
-  //         this
-  //     )
-  // );
+  private final SysIdRoutine m_sysIdRoutineTranslation = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          null,        // Use default ramp rate (1 V/s)
+          Volts.of(4), // Reduce dynamic step voltage to 4 V to prevent brownout
+          null,        // Use default timeout (10 s)
+          // Log state with SignalLogger class
+          state -> SignalLogger.writeString("SysIdTranslation_State", state.toString())
+      ),
+      new SysIdRoutine.Mechanism(
+          output -> setControl(m_translationCharacterization.withVolts(output)),
+          null,
+          this
+      )
+  );
 
-  // /* SysId routine for characterizing steer. This is used to find PID gains for the steer
-  // motors.
-  // */
-  // private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
-  //     new SysIdRoutine.Config(
-  //         null,        // Use default ramp rate (1 V/s)
-  //         Volts.of(7), // Use dynamic voltage of 7 V
-  //         null,        // Use default timeout (10 s)
-  //         // Log state with SignalLogger class
-  //         state -> SignalLogger.writeString("SysIdSteer_State", state.toString())
-  //     ),
-  //     new SysIdRoutine.Mechanism(
-  //         volts -> setControl(m_steerCharacterization.withVolts(volts)),
-  //         null,
-  //         this
-  //     )
-  // );
+  /* SysId routine for characterizing steer. This is used to find PID gains for the steer
+  motors.
+  */
+  private final SysIdRoutine m_sysIdRoutineSteer = new SysIdRoutine(
+      new SysIdRoutine.Config(
+          null,        // Use default ramp rate (1 V/s)
+          Volts.of(7), // Use dynamic voltage of 7 V
+          null,        // Use default timeout (10 s)
+          // Log state with SignalLogger class
+          state -> SignalLogger.writeString("SysIdSteer_State", state.toString())
+      ),
+      new SysIdRoutine.Mechanism(
+          volts -> setControl(m_steerCharacterization.withVolts(volts)),
+          null,
+          this
+      )
+  );
 
-  // /*
-  //  * SysId routine for characterizing rotation.
-  //  * This is used to find PID gains for the FieldCentricFacingAngle HeadingController.
-  //  * See the documentation of SwerveRequest.SysIdSwerveRotation for info on importing the log
-  // to
-  // SysId.
-  //  */
+  /*
+   * SysId routine for characterizing rotation.
+   * This is used to find PID gains for the FieldCentricFacingAngle HeadingController.
+   * See the documentation of SwerveRequest.SysIdSwerveRotation for info on importing the log
+  to
+  SysId.
+   */
   // private final SysIdRoutine m_sysIdRoutineRotation = new SysIdRoutine(
   //     new SysIdRoutine.Config(
   //         /* This is in radians per second², but SysId only supports "volts per second" */
@@ -117,8 +123,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
   //     )
   // );
 
-  // /* The SysId routine to test */
-  // private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
+  /* The SysId routine to test */
+  private SysIdRoutine m_sysIdRoutineToApply = m_sysIdRoutineTranslation;
 
   /**
    * Constructs a CTRE SwerveDrivetrain using the specified constants.
@@ -197,7 +203,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
    * Returns a command that applies the specified control request to this swerve drivetrain.
    *
    * @param request Function returning the request to apply
-   * @return Command to run
+   * @retu rn Command to run
    */
   public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
     return run(() -> this.setControl(requestSupplier.get()));
@@ -210,20 +216,20 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
    * @param direction Direction of the SysId Quasistatic test
    * @return Command to run
    */
-  // public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-  //     return m_sysIdRoutineToApply.quasistatic(direction);
-  // }
+  public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+      return m_sysIdRoutineToApply.quasistatic(direction);
+  }
 
-  // /**
-  //  * Runs the SysId Dynamic test in the given direction for the routine
-  //  * specified by {@link #m_sysIdRoutineToApply}.
-  //  *
-  //  * @param direction Direction of the SysId Dynamic test
-  //  * @return Command to run
-  //  */
-  // public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-  //     return m_sysIdRoutineToApply.dynamic(direction);
-  // }
+  /**
+   * Runs the SysId Dynamic test in the given direction for the routine
+   * specified by {@link #m_sysIdRoutineToApply}.
+   *
+   * @param direction Direction of the SysId Dynamic test
+   * @return Command to run
+   */
+  public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+      return m_sysIdRoutineToApply.dynamic(direction);
+  }
 
   @Override
   public void periodic() {
@@ -234,6 +240,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * Otherwise, only check and apply the operator perspective if the DS is disabled.
      * This ensures driving behavior doesn't change until an explicit disable event occurs during testing.
      */
+
+     Logger.recordOutput("Target Speeds", getState().ModuleTargets);
+     Logger.recordOutput("Actual Speeds", getState().ModuleStates);
     if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
       DriverStation.getAlliance()
           .ifPresent(

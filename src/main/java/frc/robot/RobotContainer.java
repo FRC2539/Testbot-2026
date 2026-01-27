@@ -5,7 +5,10 @@ import static edu.wpi.first.units.Units.RadiansPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+
+import edu.wpi.first.hal.SimDevice.Direction;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -24,7 +27,7 @@ import java.util.function.DoubleSupplier;
 public class RobotContainer {
   private double MaxSpeed =
       TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(1).in(RadiansPerSecond);
+  private double MaxAngularRate = RotationsPerSecond.of(2).in(RadiansPerSecond);
 
   private final SwerveRequest.FieldCentric drive =
       new SwerveRequest.FieldCentric()
@@ -89,7 +92,17 @@ public class RobotContainer {
             Commands.runOnce(
                 () ->
                     drivetrain.resetPose(
-                        new Pose2d(0, 0, drivetrain.getOperatorForwardDirection()))));}
+                        new Pose2d(0, 0, drivetrain.getOperatorForwardDirection()))));
+    operatorController.getA().whileTrue(drivetrain.sysIdDynamic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kForward));
+    operatorController.getB().whileTrue(drivetrain.sysIdDynamic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kReverse));
+    operatorController.getX().whileTrue(drivetrain.sysIdQuasistatic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kForward));
+    operatorController.getY().whileTrue(drivetrain.sysIdQuasistatic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kReverse));
+
+    operatorController.getLeftBumper().onTrue(Commands.runOnce(() -> {
+        SignalLogger.stop();
+    }, drivetrain));
+    }
+    
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
    *
