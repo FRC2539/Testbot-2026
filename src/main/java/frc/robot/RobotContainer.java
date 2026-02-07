@@ -103,9 +103,14 @@ public class RobotContainer {
                         new Pose2d(0, 0, drivetrain.getOperatorForwardDirection()))));
 
     leftJoystick
-        .getLeftTopLeft()
+        .getBottomThumb()
         .whileTrue(new shootOnTheFlyCommand(
-            () -> {return drivetrain.getRobotPose().getTranslation();} 
+            () -> {return drivetrain.getRobotPose().getTranslation();},
+            () -> {return -Math.pow(leftJoystick.getYAxis().getRaw(), 3)
+                            * MaxSpeed;}, // Drive left with negative X
+            () -> {return -Math.pow(leftJoystick.getXAxis().getRaw(), 3)
+                            * MaxSpeed;},
+            drivetrain
             ));
             // drivetrain::getPose,
             // () -> new Translation2d(0, 0), // hub position - this would be set to the actual hub position

@@ -1,16 +1,28 @@
 package frc.robot.subsystems;
 
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+
+import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
+import org.littletonrobotics.junction.AutoLog;
+import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
+import com.ctre.phoenix6.mechanisms.swerve.LegacySwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
+
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.Interpolatable;
 import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
 
 /* The only real complexity in this command comes from finding out what offset we need to apply to the hub position to "account" for our robot's velocity
@@ -47,22 +59,37 @@ public class shootOnTheFlyCommand extends Command {
     private final LinearFilter vxFilter = LinearFilter.movingAverage(5);
     private final LinearFilter vyFilter = LinearFilter.movingAverage(5);
 
+    private double MaxAngularRate = RotationsPerSecond.of(1.5).in(RadiansPerSecond);
+    
     private final InterpolatingTreeMap<Double, ShotSettings> shotMap = new InterpolatingTreeMap<>(
         InverseInterpolator.forDouble(), 
         ShotSettings::interpolate
     );
 
+    private final SwerveRequest.FieldCentric m_ApplyFieldSpeeds = new SwerveRequest.FieldCentric().withDriveRequestType(com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType.Velocity);
+
+    private PIDController rotController = new PIDController(6,1.5,0);
     private double latency = 0.020;
     private Supplier<Translation2d> robotPosition;
     private Supplier<Translation2d> hubPosition;
     private Supplier<Translation2d> robotVelocity;
     private Supplier<Rotation2d> angularRobotVelocity;
+    private DoubleSupplier xVelocity;
+    private DoubleSupplier yVelocity;
+    private CommandSwerveDrivetrain drivetrain;
     // private Supplier<Rotation2d> robotRotation;
+    @AutoLogOutput
+    public Rotation2d x;
+
     private final Translation2d turretOffset = new Translation2d(0, 0);
 
-    public shootOnTheFlyCommand(Supplier<Translation2d> robotPosition) {
+    public shootOnTheFlyCommand(Supplier<Translation2d> robotPosition, DoubleSupplier xVel, DoubleSupplier yVel, CommandSwerveDrivetrain dt) {
+        //addRequirements(drivetrain);
+        xVelocity = xVel;
+        yVelocity = yVel;
+        this.drivetrain = dt;
         this.robotPosition = robotPosition;
-        this.hubPosition = () -> new Translation2d(0, 0); // would be set to actual hub position
+        this.hubPosition = () -> new Translation2d(11.962, 3.592); // would be set to actual hub position
         this.robotVelocity = () -> new Translation2d(0,0);
         this.angularRobotVelocity = () -> Rotation2d.fromDegrees(0);
         //this.robotRotation = robotRotation;
@@ -72,6 +99,8 @@ public class shootOnTheFlyCommand extends Command {
     @Override
     public void initialize() { 
         
+        rotController.enableContinuousInput(-Math.PI, Math.PI);
+        rotController.setTolerance(Units.degreesToRadians(1.5));
     }
 
     @Override
@@ -146,10 +175,18 @@ public class shootOnTheFlyCommand extends Command {
 
         //Rotation2d robotRelativeTurretAngle = fieldRelativeTurretAngle.minus(robotRotation.get());
 
-        Logger.recordOutput("AngleToRotate", fieldRelativeTurretAngle);
+       // Logger.recordOutput("AngleToRotate", fieldRelativeTurretAngle.getDegrees());
 
-        System.out.println(fieldRelativeTurretAngle.getDegrees());
+        //System.out.println(fieldRelativeTurretAngle.getDegrees());
        // double neededHoodAngle = shotMap.get(virtualDistance).hoodAngle;
+
+       x = fieldRelativeTurretAngle;
+
+
+       double rotVelocity = rotController.calculate(drivetrain.getRobotPose().getRotation().getRadians(), x.getRadians());
+
+       System.out.println(Units.radiansToDegrees(rotVelocity));
+       drivetrain.setControl(m_ApplyFieldSpeeds.withVelocityX(xVelocity.getAsDouble()).withVelocityY(yVelocity.getAsDouble()).withRotationalRate(rotVelocity));
     }
 
 
