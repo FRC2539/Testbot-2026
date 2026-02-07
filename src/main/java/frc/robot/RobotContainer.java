@@ -11,6 +11,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.hal.SimDevice.Direction;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.XboxController;
@@ -20,6 +21,7 @@ import frc.lib.controller.LogitechController;
 import frc.lib.controller.ThrustmasterJoystick;
 import frc.robot.constants.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.shootOnTheFlyCommand;
 
 import java.util.Set;
 import java.util.function.DoubleSupplier;
@@ -27,13 +29,14 @@ import java.util.function.DoubleSupplier;
 public class RobotContainer {
   private double MaxSpeed =
       TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
-  private double MaxAngularRate = RotationsPerSecond.of(2).in(RadiansPerSecond);
+  private double MaxAngularRate = RotationsPerSecond.of(1.5).in(RadiansPerSecond);
 
   private final SwerveRequest.FieldCentric drive =
       new SwerveRequest.FieldCentric()
           .withDeadband(MaxSpeed * 0.05)
           .withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
           .withDriveRequestType(DriveRequestType.Velocity);
+;
 
   // Controllers
   private final ThrustmasterJoystick leftJoystick = new ThrustmasterJoystick(0);
@@ -52,6 +55,7 @@ public class RobotContainer {
     if (Robot.isReal()) {
 
     } else {
+
     }
     auto = new Auto(this);
 
@@ -86,13 +90,28 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
+    LimelightHelpers.SetIMUMode("limelight-left", 1);
+    LimelightHelpers.SetIMUMode("limelight-right", 1);
+    
+
     rightJoystick
         .getLeftTopLeft()
         .onTrue(
             Commands.runOnce(
-                () ->
+                () -> 
                     drivetrain.resetPose(
                         new Pose2d(0, 0, drivetrain.getOperatorForwardDirection()))));
+
+    leftJoystick
+        .getLeftTopLeft()
+        .whileTrue(new shootOnTheFlyCommand(
+            () -> {return drivetrain.getRobotPose().getTranslation();} 
+            ));
+            // drivetrain::getPose,
+            // () -> new Translation2d(0, 0), // hub position - this would be set to the actual hub position
+            // drivetrain::getVelocity,
+            // drivetrain::getAngularVelocity,
+            // drivetrain::getRotation));
     operatorController.getA().whileTrue(drivetrain.sysIdDynamic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kForward));
     operatorController.getB().whileTrue(drivetrain.sysIdDynamic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kReverse));
     operatorController.getX().whileTrue(drivetrain.sysIdQuasistatic(edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction.kForward));

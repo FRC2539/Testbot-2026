@@ -21,6 +21,8 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import frc.robot.LimelightHelpers;
+import frc.robot.LimelightHelpers.PoseEstimate;
 import frc.robot.constants.AlignConstants;
 import frc.robot.constants.TunerConstants.TunerSwerveDrivetrain;
 
@@ -241,6 +243,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
      * This ensures driving behavior doesn't change until an explicit disable event occurs during testing.
      */
 
+     LimelightHelpers.SetRobotOrientation("limelight-left", getRotation().getDegrees(), 0, 0, 0, 0, 0);
+    LimelightHelpers.SetRobotOrientation("limelight-right", getRotation().getDegrees(), 0, 0, 0, 0, 0);
+
      Logger.recordOutput("Target Speeds", getState().ModuleTargets);
      Logger.recordOutput("Actual Speeds", getState().ModuleStates);
     if (!m_hasAppliedOperatorPerspective || DriverStation.isDisabled()) {
@@ -254,6 +259,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 m_hasAppliedOperatorPerspective = true;
               });
     }
+
+    PoseEstimate leftPoseEstimate =
+        LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-left");
+
+    PoseEstimate rightPoseEstimate =
+        LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-right");
+
+    filterAndAddMeasurements(leftPoseEstimate);
+    filterAndAddMeasurements(rightPoseEstimate);
+    
   }
 
   private void startSimThread() {
@@ -321,35 +336,34 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     return getState().Speeds;
   }
 
-  // public void filterAndAddMeasurements(PoseEstimator estimate) {
+  public void filterAndAddMeasurements(PoseEstimate estimate) {
+    // System.out.println(estimate);
+    if (estimate == null) {
 
-  //   // System.out.println(estimate);
-  //   if (estimate == null) {
+    } else {
+      boolean rejectPose = false;
+      if (estimate.tagCount < 1) {
+        rejectPose = true;
+      }
 
-  //   } else {
-  //     boolean rejectPose = false;
-  //     if (estimate.tagCount < 1) {
-  //       rejectPose = true;
-  //     }
+      if (estimate.avgTagDist
+          > 3.5) { // reject tags if estimate is the average tag distance is more than 2 meters awa
+        rejectPose = true;
+      }
 
-  //     if (estimate.avgTagDist
-  //         > 3.5) { // reject tags if estimate is the average tag distance is more than 2 meters awa
-  //       rejectPose = true;
-  //     }
-
-  //     if (!rejectPose) {
-  //       Logger.recordOutput("accepted limelight pose", estimate.pose);
-  //       addVisionMeasurement(
-  //           estimate.pose,
-  //           estimate.timestampSeconds,
-  //           // VecBuilder.fill(
-  //           //     0, 0, .99999)); // increase values to trust vision estimate less. (x, y, heading)
-  //           VecBuilder.fill(
-  //               0.5, 0.5,
-  //               .99999)); // increase values to trust vision estimate less. (x, y, heading)
-  //     }
-  //   }
-  // }
+      if (!rejectPose) {
+        Logger.recordOutput("accepted limelight pose", estimate.pose);
+        addVisionMeasurement(
+            estimate.pose,
+            estimate.timestampSeconds,
+            // VecBuilder.fill(
+            //     0, 0, .99999)); // increase values to trust vision estimate less. (x, y, heading)
+            VecBuilder.fill(
+                0.5, 0.5,
+                .99999)); // increase values to trust vision estimate less. (x, y, heading)
+      }
+    }
+  }
 
   public Pose2d findNearestAprilTagPose() {
     Pose2d currentPose = getRobotPose();
